@@ -1912,21 +1912,38 @@ end:
 	}
 }
 
+/* The returned list may contain duplicated encodings. Only the first occurrence
+ * of a duplicated encoding should be kept, like it is done by
+ * gtk_source_file_loader_set_candidate_encodings().
+ */
 static GSList *
 get_candidate_encodings (GeditTab *tab)
 {
 	GeditDocument *doc;
+	GtkSourceFile *file;
 	GSettings *enc_settings;
-	gchar **enc_strv;
+	gchar **enc_settings_strv;
+	const GtkSourceEncoding *file_encoding;
 	gchar *metadata_charset;
-	GSList *encodings;
+	GSList *all_encodings = NULL;
 
 	enc_settings = g_settings_new ("org.gnome.gedit.preferences.encodings");
 
-	enc_strv = g_settings_get_strv (enc_settings, GEDIT_SETTINGS_ENCODING_AUTO_DETECTED);
+	enc_settings_strv = g_settings_get_strv (enc_settings, GEDIT_SETTINGS_CANDIDATE_ENCODINGS);
 
-	encodings = _gedit_utils_encoding_strv_to_list ((const gchar * const *)enc_strv);
+	/* First take the candidate encodings from GSettings. If the gsetting is
+	 * empty, take the default candidates of GtkSourceEncoding.
+	 */
+	if (enc_settings_strv != NULL && enc_settings_strv[0] != NULL)
+	{
+		all_encodings = _gedit_utils_encoding_strv_to_list ((const gchar * const *)enc_settings_strv);
+	}
+	else
+	{
+		all_encodings = gtk_source_encoding_get_default_candidates ();
+	}
 
+	/* Then prepend the encoding stored in the metadata. */
 	doc = gedit_tab_get_document (tab);
 	metadata_charset = gedit_document_get_metadata (doc, GEDIT_METADATA_ATTRIBUTE_ENCODING);
 
@@ -1938,16 +1955,27 @@ get_candidate_encodings (GeditTab *tab)
 
 		if (metadata_enc != NULL)
 		{
-			encodings = g_slist_prepend (encodings, (gpointer)metadata_enc);
+			all_encodings = g_slist_prepend (all_encodings, (gpointer) metadata_enc);
 		}
 
 		g_free (metadata_charset);
 	}
 
-	g_strfreev (enc_strv);
+	/* Finally prepend the GtkSourceFile's encoding, if previously set by a
+	 * file loader or file saver.
+	 */
+	file = gedit_document_get_file (doc);
+	file_encoding = gtk_source_file_get_encoding (file);
+
+	if (file_encoding != NULL)
+	{
+		all_encodings = g_slist_prepend (all_encodings, (gpointer) file_encoding);
+	}
+
+	g_strfreev (enc_settings_strv);
 	g_object_unref (enc_settings);
 
-	return encodings;
+	return all_encodings;
 }
 
 static void

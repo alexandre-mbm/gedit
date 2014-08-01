@@ -247,6 +247,13 @@
       <summary>Encodings shown in menu</summary>
       <description>List of encodings shown in the Character Encoding menu in open/save file selector. Only recognized encodings are used.</description>
     </key>
+    <key name="candidate-encodings" type="as">
+      <default>['']</default>
+      <summary>Candidate Encodings</summary>
+      <description>List of candidate encodings shown in the Character Encoding menu in the open/save file chooser.
+      "CURRENT" represents the current locale encoding. Only recognized encodings are used.
+      The default value is the empty list, in which case it should work for most countries and languages.</description>
+    </key>
   </schema>
   <schema id="org.gnome.gedit.state" path="/org/gnome/gedit/state/">
     <child name="window" schema="org.gnome.gedit.state.window"/>
