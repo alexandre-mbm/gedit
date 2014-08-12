@@ -71,6 +71,8 @@ void			 gedit_settings_set_list			(GSettings     *settings,
 									 const gchar   *key,
 									 const GSList  *list);
 
+GSList			*gedit_settings_get_candidate_encodings		(void);
+
 /* key constants */
 #define GEDIT_SETTINGS_USE_DEFAULT_FONT			"use-default-font"
 #define GEDIT_SETTINGS_EDITOR_FONT			"editor-font"

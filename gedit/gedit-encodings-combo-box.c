@@ -32,8 +32,6 @@
 
 struct _GeditEncodingsComboBoxPrivate
 {
-	GSettings *enc_settings;
-
 	GtkListStore *store;
 	glong changed_id;
 
@@ -108,7 +106,6 @@ gedit_encodings_combo_box_dispose (GObject *object)
 	GeditEncodingsComboBox *combo = GEDIT_ENCODINGS_COMBO_BOX (object);
 
 	g_clear_object (&combo->priv->store);
-	g_clear_object (&combo->priv->enc_settings);
 
 	G_OBJECT_CLASS (gedit_encodings_combo_box_parent_class)->dispose (object);
 }
@@ -288,11 +285,11 @@ update_menu (GeditEncodingsComboBox *menu)
 {
 	GtkListStore *store;
 	GtkTreeIter iter;
-	GSList *encodings, *l;
+	GSList *encodings;
+	GSList *l;
 	gchar *str;
 	const GtkSourceEncoding *utf8_encoding;
 	const GtkSourceEncoding *current_encoding;
-	gchar **enc_strv;
 
 	store = menu->priv->store;
 
@@ -351,11 +348,7 @@ update_menu (GeditEncodingsComboBox *menu)
 		g_free (str);
 	}
 
-	enc_strv = g_settings_get_strv (menu->priv->enc_settings,
-					GEDIT_SETTINGS_ENCODING_SHOWN_IN_MENU);
-
-	encodings = _gedit_utils_encoding_strv_to_list ((const gchar * const *)enc_strv);
-	g_strfreev (enc_strv);
+	encodings = gedit_settings_get_candidate_encodings ();
 
 	for (l = encodings; l != NULL; l = g_slist_next (l))
 	{
@@ -401,8 +394,6 @@ static void
 gedit_encodings_combo_box_init (GeditEncodingsComboBox *menu)
 {
 	menu->priv = gedit_encodings_combo_box_get_instance_private (menu);
-
-	menu->priv->enc_settings = g_settings_new ("org.gnome.gedit.preferences.encodings");
 
 	menu->priv->store = gtk_list_store_new (N_COLUMNS,
 						G_TYPE_STRING,

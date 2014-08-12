@@ -25,12 +25,15 @@
 #include <config.h>
 #endif
 
+#include "gedit-settings.h"
+
 #include <string.h>
 #include <gtksourceview/gtksource.h>
+
 #include "gedit-app.h"
 #include "gedit-view.h"
 #include "gedit-window.h"
-#include "gedit-settings.h"
+#include "gedit-utils.h"
 
 #define GEDIT_SETTINGS_LOCKDOWN_COMMAND_LINE "disable-command-line"
 #define GEDIT_SETTINGS_LOCKDOWN_PRINTING "disable-printing"
@@ -488,6 +491,48 @@ gedit_settings_set_list (GSettings    *settings,
 
 	g_settings_set_strv (settings, key, (const gchar * const *)values);
 	g_free (values);
+}
+
+static gboolean
+strv_is_empty (gchar **strv)
+{
+	gint i;
+
+	for (i = 0; strv != NULL && strv[i] != NULL; i++)
+	{
+		if (strv[i][0] != '\0')
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+GSList *
+gedit_settings_get_candidate_encodings (void)
+{
+	GSettings *settings;
+	gchar **enc_strv;
+	GSList *list;
+
+	settings = g_settings_new ("org.gnome.gedit.preferences.encodings");
+
+	enc_strv = g_settings_get_strv (settings, GEDIT_SETTINGS_CANDIDATE_ENCODINGS);
+
+	if (strv_is_empty (enc_strv))
+	{
+		list = gtk_source_encoding_get_default_candidates ();
+	}
+	else
+	{
+		list = _gedit_utils_encoding_strv_to_list ((const gchar * const *) enc_strv);
+		/* TODO ensure that UTF-8 and CURRENT are present. */
+	}
+
+	g_object_unref (settings);
+	g_strfreev (enc_strv);
+	return list;
 }
 
 /* ex:set ts=8 noet: */

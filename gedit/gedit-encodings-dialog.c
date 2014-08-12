@@ -96,7 +96,7 @@ gedit_encodings_dialog_response (GtkDialog *dialog,
 
 			enc_strv = _gedit_utils_encoding_list_to_strv (priv->show_in_menu_list);
 			g_settings_set_strv (priv->enc_settings,
-			                     GEDIT_SETTINGS_ENCODING_SHOWN_IN_MENU,
+			                     GEDIT_SETTINGS_CANDIDATE_ENCODINGS,
 			                     (const gchar * const *)enc_strv);
 
 			g_strfreev (enc_strv);
@@ -258,37 +258,6 @@ remove_button_clicked_cb (GtkWidget            *button,
 }
 
 static void
-init_shown_in_menu_tree_model (GeditEncodingsDialog *dialog)
-{
-	GtkTreeIter iter;
-	gchar **enc_strv;
-	GSList *list;
-	GSList *l;
-
-	/* add data to the list store */
-	enc_strv = g_settings_get_strv (dialog->priv->enc_settings,
-					GEDIT_SETTINGS_ENCODING_SHOWN_IN_MENU);
-
-	list = _gedit_utils_encoding_strv_to_list ((const gchar * const *)enc_strv);
-
-	for (l = list; l != NULL; l = l->next)
-	{
-		const GtkSourceEncoding *cur_encoding = l->data;
-
-		dialog->priv->show_in_menu_list = g_slist_prepend (dialog->priv->show_in_menu_list,
-								   (gpointer) cur_encoding);
-
-		gtk_list_store_append (dialog->priv->liststore_displayed, &iter);
-		gtk_list_store_set (dialog->priv->liststore_displayed, &iter,
-				    COLUMN_CHARSET, gtk_source_encoding_get_charset (cur_encoding),
-				    COLUMN_NAME, gtk_source_encoding_get_name (cur_encoding),
-				    -1);
-	}
-
-	g_slist_free (list);
-}
-
-static void
 insert_available_encoding_foreach_cb (const GtkSourceEncoding *encoding,
 				      GeditEncodingsDialog    *dlg)
 {
@@ -347,8 +316,8 @@ gedit_encodings_dialog_init (GeditEncodingsDialog *dlg)
 
 	/* Tree view of selected encodings */
 
-	/* Add the data */
-	init_shown_in_menu_tree_model (dlg);
+	dlg->priv->show_in_menu_list = gedit_settings_get_candidate_encodings ();
+	update_liststore_displayed (dlg);
 
 	selection = gtk_tree_view_get_selection (dlg->priv->treeview_displayed);
 
