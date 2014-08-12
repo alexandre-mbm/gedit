@@ -289,16 +289,10 @@ init_shown_in_menu_tree_model (GeditEncodingsDialog *dialog)
 }
 
 static void
-insert_encoding_foreach_cb (const GtkSourceEncoding *encoding,
-			    GeditEncodingsDialog    *dlg)
+insert_available_encoding_foreach_cb (const GtkSourceEncoding *encoding,
+				      GeditEncodingsDialog    *dlg)
 {
 	GtkTreeIter iter;
-
-	if (encoding == gtk_source_encoding_get_utf8 ())
-	{
-		/* The UTF-8 encoding is always added to the combobox. */
-		return;
-	}
 
 	gtk_list_store_append (dlg->priv->liststore_available, &iter);
 
@@ -335,7 +329,7 @@ gedit_encodings_dialog_init (GeditEncodingsDialog *dlg)
 	/* Tree view of available encodings */
 
 	/* Add the data */
-	gtk_source_encoding_foreach ((GtkSourceEncodingForeachFunc) insert_encoding_foreach_cb,
+	gtk_source_encoding_foreach ((GtkSourceEncodingForeachFunc) insert_available_encoding_foreach_cb,
 				     dlg);
 
 	/* Sort model */
