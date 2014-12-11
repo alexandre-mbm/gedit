@@ -6,7 +6,7 @@ _ifwroot="${_thisdir}"/qt-ifw
 _arch=$(uname -m)
 _date=$(date +'%Y%m%d')
 _dateqif=$(date +'%Y-%m-%d')
-_version=@VERSION@
+_version=3.14
 _filename=gedit-${_arch}-${_version}.exe
 _log=/tmp/installer.log
 if [ "${_arch}" = "x86_64" ]; then
@@ -64,8 +64,8 @@ undo_seds() {
 
 # Add -v to get more information.
 make_installer() {
-  "${_binarycreator}" \
-    -t "${_installerbase}" \
+  "/c/msys${_bitness}/${_binarycreator}" \
+    -t "/c/msys${_bitness}/${_installerbase}" \
     -p "${_ifwroot}/packages" \
     -c "${_ifwroot}/config/config.xml" \
     --offline-only \
@@ -83,6 +83,10 @@ _newgedit=/tmp/gedit
 create_archive() {
   local _data="${_ifwroot}"/packages/org.gnome.gedit.root.package/data
   [ -d "${_data}" ] && rm -rf "${_data}"
+
+  _newgedit_old=${_newgedit}
+  #C:/msys32/home/Alan/gedit/win32
+  _newgedit=../../../../${_newgedit}
 
   # remove .a files not needed for the installer
   find ${_newgedit} -name "*.a" -exec rm -f {} \;
@@ -118,12 +122,12 @@ create_archive() {
   _dirs=
   for curr_dir in /bin /etc /lib /share; do
     if [[ -d ${_newgedit}/mingw${_bitness}/$curr_dir || -f ${_newgedit}/mingw${_bitness}/$curr_dir ]]; then
-      _dirs="${_dirs} ${_newgedit}/mingw${_bitness}/$curr_dir"
+      _dirs="${_dirs} /mingw${_bitness}/$curr_dir"
     fi
   done
 
   if [ -n "$_dirs" ]; then
-    _compress_cmd="${_archivegen} ${_data}/gedit.7z ${_dirs}"
+    _compress_cmd="/c/msys${_bitness}/${_archivegen} ${_data}/gedit.7z ${_dirs}"
     pushd / > /dev/null
     eval ${_compress_cmd} | tee $_log 2>&1
     _result=$?
@@ -137,6 +141,7 @@ create_archive() {
 
   # copy the license
   cp ../COPYING "${_ifwroot}"/packages/org.gnome.gedit.root/meta/gpl2.txt
+  _newgedit=${_newgedit_old}
 }
 
 create_chroot_system() {
@@ -148,7 +153,14 @@ create_chroot_system() {
   mkdir -p var/log
   mkdir -p tmp
 
-  pacman -Syu --root "${_newgedit}"
+  pacman -Syu --noconfirm --root "${_newgedit}"
+  pacman -S pacman --noconfirm --rootrebase "${_newgedit}"
+  pacman -S base --force --noconfirm --rootrebase "${_newgedit}"
+
+  pacman-key --gpgdir "${_newgedit}/etc/pacman.d/gnupg" --init
+  pacman-key --gpgdir "${_newgedit}/etc/pacman.d/gnupg" --populate msys2
+  pacman-key --gpgdir "${_newgedit}/etc/pacman.d/gnupg" --refresh-keys
+
   pacman -S filesystem bash pacman --noconfirm --root "${_newgedit}"
   _result=$?
   if [ "$_result" -ne "0" ]; then
@@ -158,15 +170,15 @@ create_chroot_system() {
 }
 
 install_gedit_packages() {
-  pacman -S mingw-w64-${_arch}-librsvg mingw-w64-${_arch}-gedit mingw-w64-${_arch}-gedit-plugins mingw-w64-${_arch}-adwaita-icon-theme --noconfirm --root "${_newgedit}"
+  pacman -S mingw-w64-${_arch}-librsvg mingw-w64-${_arch}-gedit mingw-w64-${_arch}-gedit-plugins mingw-w64-${_arch}-adwaita-icon-theme --noconfirm #--root "${_newgedit}"
   _result=$?
   if [ "$_result" -ne "0" ]; then
     exit_cleanly "1" "failed to create newgedit via command 'pacman -S gedit --noconfirm --root ${_newgedit}'"
   fi
 
   # some packages are pulled by the deps but we do not need them like python2
-  pacman -Rdd mingw-w64-${_arch}-python2 --noconfirm --root "${_newgedit}"
-  pacman -Rdd mingw-w64-${_arch}-gtk2 --noconfirm --root "${_newgedit}"
+  pacman -Rdd mingw-w64-${_arch}-python2 --noconfirm #--root "${_newgedit}"
+  pacman -Rdd mingw-w64-${_arch}-gtk2 --noconfirm #--root "${_newgedit}"
 }
 
 if [ ! -f "${_archivegen}" ]; then
