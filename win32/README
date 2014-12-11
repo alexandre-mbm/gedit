@@ -6,4 +6,4 @@ To create the installer you need to follow the next steps:
  - clone gedit: git clone git://git.gnome.org/gedit
  - cd gedit/win32
  - edit make-gedit-installer and set the right version of gedit
- - ./make-gedit-installer.bat
+ - do ./make-gedit-installer-32.bat or ./make-gedit-installer-64.bat
